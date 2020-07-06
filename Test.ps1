@@ -9,5 +9,5 @@ $parms = @{
     GroupID = 2
     }
 
- Start-PSRestore @parms -ScriptOnly
+ Start-PSRestore @parms -Verbose
 
