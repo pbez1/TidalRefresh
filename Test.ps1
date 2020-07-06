@@ -1,4 +1,4 @@
-Import-Module .\TidalRefresh.psm1
+Import-Module "\\gruyere\is\DBA\DBAs\DBA Powershell Scripts\Modules\TidalRefresh\TidalRefresh.psm1" -Force
 
 Clear-Host
 
@@ -6,8 +6,8 @@ $parms = @{
     ConfigServer = 'spf-sv-delldb';
     ConfigDB = 'admin';
     RestoreType = 'diff'
-    GroupID = 3
+    GroupID = 2
     }
 
-Invoke-Restore @parms -ScriptOnly
-# Invoke-DiffRestore @parms -ScriptOnly
+ Start-PSRestore @parms -ScriptOnly
+

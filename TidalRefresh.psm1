@@ -99,7 +99,7 @@ function Disconnect-PSConnections {
         }
     }
 
-function Get-LatestBackups {
+function Get-PSLatestBackups {
     [cmdletbinding()]
 
     param(
@@ -122,7 +122,7 @@ function Get-LatestBackups {
             $string_to_match = '_refresh'
             }
         else {
-            throw 'Error in Get-LatestBackups: -RestoreType parameter must be either "full" or "diff"'
+            throw 'Error in Get-PSLatestBackups: -RestoreType parameter must be either "full" or "diff"'
             }
         }
 
@@ -138,7 +138,7 @@ function Get-LatestBackups {
     $file_paths
     }
 
-function Get-SQLStatement {
+function Get-PSSQLStatement {
     [cmdletbinding()]
 
     param (
@@ -320,7 +320,7 @@ function Invoke-PSPersistCommands {
 
         # Execute the SQL that retrieves the commands to store in tidal_users.
         Write-Verbose "Saving commands for database: $dbname"
-        $sql = Get-SQLStatement -CommandType $CommandType
+        $sql = Get-PSSQLStatement -CommandType $CommandType
         $result_set = Invoke-Sqlcmd -ServerInstance $src_server -Database $dbname -Query $sql
         # Write-Host $sql
 
@@ -406,7 +406,7 @@ function Invoke-PSExecuteCommands {
     # Get a list of the databases we intend to process from the tidal_main table.  
     # Include the server that contains the database that will be overwritten so we can extract the users list.
     Write-Verbose 'Getting the list of databases to process from the "tidal_main" table.'
-    $sql = "select restore_to + '.' + dbname database_name from $ConfigDB.dbo.tidal_main where restore_type = '$RestoreType' and group_id = $GroupID"
+    $sql = "select restore_to + '.' + dbname database_name from $ConfigDB.dbo.tidal_main where group_id = $GroupID"
     $Databases = Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql
 
     $cmd_stmt = ""
@@ -416,7 +416,7 @@ function Invoke-PSExecuteCommands {
         $dbname = $($db.database_name).split('.')[1]
 
         # Execute the SQL that retrieves the commands to store in tidal_users.
-        $sql = Get-SQLStatement -CommandType $CommandType
+        $sql = Get-PSSQLStatement -CommandType $CommandType
         $result_set = Invoke-Sqlcmd -ServerInstance $src_server -Database $dbname -Query $sql
         # Write-Host $sql
     
@@ -473,7 +473,7 @@ function Invoke-PSExecuteCommands {
         }
     }
 
-function Start-PreProcess {
+function Start-PSPreProcess {
     [cmdletbinding()]
 
     param(
@@ -532,7 +532,7 @@ function Start-PreProcess {
         }
     }
 
-function Start-PostProcess {
+function Start-PSPostProcess {
     [cmdletbinding()]
 
     param(
@@ -641,7 +641,7 @@ function Backup-PSSingleDB {
 
     # Create the executable SQL statement to restore the database.  The SQL statement will be different depending
     # on the type of restore being done; whether FULL or DIFF.
-    $sql = Get-SQLStatement -CommandType 'Backup Diff'
+    $sql = Get-PSSQLStatement -CommandType 'Backup Diff'
 
     # If the user only wants the SQL script, return it.  Otherwise, Execute the restore script.
     if ($ScriptOnly) {
@@ -692,11 +692,11 @@ function Restore-PSSingleDB {
     $FullBackupName = Join-Path -Path $FolderPath -ChildPath $dbname
     
 #endregion Validate
-    Write-Verbose "Starting restore of: $Database"
+    Write-Verbose "Starting restore of: $Database, from path: $FullBackupName"
 
     # Get a list of the database file locations from the target SQL Server.  These are the locations that will 
     # be used in the MOVE clause of the restore command.
-    $sql = Get-SQLStatement -CommandType 'Get File Locations'
+    $sql = Get-PSSQLStatement -CommandType 'Get File Locations'
     $file_group = Invoke-Sqlcmd -ServerInstance $TargetServer -Database 'master' -Query $sql
 
     # Create the "Move" section of the script since there may be a variable number of database files
@@ -708,11 +708,11 @@ function Restore-PSSingleDB {
     # Create the executable SQL statement to restore the database.  The SQL statement will be different depending
     # on the type of restore being done; whether FULL or DIFF.
     if ($RestoreType -eq 'full') {
-        $sql = Get-SQLStatement -CommandType 'Restore Full'
+        $sql = Get-PSSQLStatement -CommandType 'Restore Full'
         }
     else {
         if ($RestoreType.ToLower() -eq 'diff') {
-            $sql = Get-SQLStatement -CommandType 'Restore Diff'
+            $sql = Get-PSSQLStatement -CommandType 'Restore Diff'
             }
         }
 
@@ -756,7 +756,7 @@ function Backup-PSAllDiffs {
     # Get a list of the most recent full backups.  We're going to get the *actual* file names of the databases to be restored.
     $latest_backups = @()
     foreach ($location in $tidal_path) {
-        $latest_backups += Get-LatestBackups -FolderPath $($location.filepath) -RestoreType $RestoreType.Trim().ToLower()
+        $latest_backups += Get-PSLatestBackups -FolderPath $($location.filepath) -RestoreType $RestoreType.Trim().ToLower()
         }
 
     # Loop through the database list, build the restore script fore each database and execute it.
@@ -833,7 +833,7 @@ function Restore-PSBackups {
     # Get a list of the most recent full backups.  These are the *actual* path and file names of the databases to be restored.
     $latest_backups = @()
     foreach ($location in $tidal_path) {
-        $latest_backups += Get-LatestBackups -FolderPath $($location.filepath) -RestoreType $RestoreType.Trim().ToLower()
+        $latest_backups += Get-PSLatestBackups -FolderPath $($location.filepath) -RestoreType $RestoreType.Trim().ToLower()
         }
 
     # Loop through the database list, build the restore script fore each database and execute it.
@@ -883,7 +883,7 @@ function Restore-PSBackups {
         }
     }
 
-function Invoke-Restore {
+function Start-PSRestore {
     [cmdletbinding()]
 
     param(
@@ -904,56 +904,21 @@ function Invoke-Restore {
         )
 
     if ('full' -eq $($parms.RestoreType).trim().ToLower()) {
-        # Start-PreProcess @parms -ScriptOnly:$ScriptOnly 
+        # Start-PSPreProcess @parms -ScriptOnly:$ScriptOnly 
         Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
-        # Start-PostProcess @parms -ScriptOnly:$ScriptOnly
+        # Start-PSPostProcess @parms -ScriptOnly:$ScriptOnly
         }
     else {
         if ('diff' -eq $($parms.RestoreType).trim().ToLower()) {
-            # Start-PreProcess @parms -ScriptOnly:$ScriptOnly 
+            # Start-PSPreProcess @parms -ScriptOnly:$ScriptOnly 
             # Backup-PSAllDiffs @parms -ScriptOnly:$ScriptOnly
             # Write-PSTriggerFile @parms -TriggerName 'Tidal Go Trigger'
             Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
-            # Start-PostProcess @parms -ScriptOnly:$ScriptOnly
+            # Start-PSPostProcess @parms -ScriptOnly:$ScriptOnly
             }
         else {
             throw 'Invalid restore type.  The -RestoreType parameter must be either "full" or "diff"'
             }
         }
     }
-    
-function Start-Restore {
-    [cmdletbinding()]
 
-    param(
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigServer
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigDB
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $RestoreType
-        ,
-        [Parameter(Mandatory = $false)]
-        [string] $GroupID = "1"
-        ,
-        [Parameter(Mandatory = $false)]
-        [switch] $ScriptOnly
-        )
-
-    # Set script wide Verbose behavior
-    if($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {$VerbosePreference = 'Continue'} else {$VerbosePreference = 'SilentlyContinue'}
-
-    if ('full' -eq $RestoreType.ToLower()) {
-        Invoke-FullRestore @parms -ScriptOnly:$ScriptOnly
-        }
-    else {
-        if ('diff' -eq $RestoreType.ToLower()) {
-            Invoke-DiffRestore @parms -ScriptOnly:$ScriptOnly
-            }
-        else {
-            throw "You must specify whether you want a FULL or DIFF restore."
-            }
-        }
-    }
