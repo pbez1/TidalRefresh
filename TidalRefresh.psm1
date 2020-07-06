@@ -883,7 +883,7 @@ function Restore-PSBackups {
         }
     }
 
-function Invoke-DiffRestore {
+function Invoke-Restore {
     [cmdletbinding()]
 
     param(
@@ -903,40 +903,23 @@ function Invoke-DiffRestore {
         [switch] $ScriptOnly
         )
 
-    $parms.RestoreType = 'diff'
-
-    # Start-PreProcess @parms -ScriptOnly:$ScriptOnly 
-    # Backup-PSAllDiffs @parms -ScriptOnly:$ScriptOnly
-    # Write-PSTriggerFile @parms -TriggerName 'Tidal Go Trigger'
-    # Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
-    Start-PostProcess @parms -ScriptOnly:$ScriptOnly
-    }
-
-function Invoke-FullRestore {
-    [cmdletbinding()]
-
-    param(
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigServer
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigDB
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $RestoreType
-        ,
-        [Parameter(Mandatory = $false)]
-        [string] $GroupID = "1"
-        ,
-        [Parameter(Mandatory = $false)]
-        [switch] $ScriptOnly
-        )
-
-    $parms.RestoreType = 'full'
-
-    # Start-PreProcess @parms -ScriptOnly:$ScriptOnly 
-    Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
-    # Start-PostProcess @parms -ScriptOnly:$ScriptOnly
+    if ('full' -eq $($parms.RestoreType).trim().ToLower()) {
+        # Start-PreProcess @parms -ScriptOnly:$ScriptOnly 
+        Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
+        # Start-PostProcess @parms -ScriptOnly:$ScriptOnly
+        }
+    else {
+        if ('diff' -eq $($parms.RestoreType).trim().ToLower()) {
+            # Start-PreProcess @parms -ScriptOnly:$ScriptOnly 
+            # Backup-PSAllDiffs @parms -ScriptOnly:$ScriptOnly
+            # Write-PSTriggerFile @parms -TriggerName 'Tidal Go Trigger'
+            Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
+            # Start-PostProcess @parms -ScriptOnly:$ScriptOnly
+            }
+        else {
+            throw 'Invalid restore type.  The -RestoreType parameter must be either "full" or "diff"'
+            }
+        }
     }
     
 function Start-Restore {

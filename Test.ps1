@@ -6,10 +6,8 @@ $parms = @{
     ConfigServer = 'spf-sv-delldb';
     ConfigDB = 'admin';
     RestoreType = 'diff'
-    GroupID = 1
+    GroupID = 3
     }
 
-Restore-PSBackups @parms -ScriptOnly
-
-# Invoke-FullRestore @parms -ScriptOnly
+Invoke-Restore @parms -ScriptOnly
 # Invoke-DiffRestore @parms -ScriptOnly
