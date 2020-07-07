@@ -75,7 +75,7 @@ function Disconnect-PSConnections {
     # Get a list of the databases we intend to process from the tidal_main table.  
     # Include the server that contains the database that will be overwritten so we can extract the users list.
     Write-Verbose 'Getting the list of databases to process from the "tidal_main" table.'
-    $sql = "select restore_to + '.' + dbname database_name from $ConfigDB.dbo.tidal_main where group_id = $GroupID"
+    $sql = "select restore_to + '.' + dbname database_name from $ConfigDB.dbo.tidal_main where system_nm = '$SystemName' and group_id = $GroupID"
     $Databases = Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql
 
     foreach ($db in $Databases) {
@@ -303,7 +303,7 @@ function Invoke-PSPersistCommands {
     # Get a list of the databases we intend to process from the tidal_main table.  
     # Include the server that contains the database that will be overwritten so we can extract the users list.
     Write-Verbose 'Getting the list of databases to process from the "tidal_main" table.'
-    $sql = "select restore_to + '.' + dbname database_name from $ConfigDB.dbo.tidal_main where group_id = $GroupID"
+    $sql = "select restore_to + '.' + dbname database_name from $ConfigDB.dbo.tidal_main where system_nm = '$SystemName' and group_id = $GroupID"
     $Databases = Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql
 
     foreach ($db in $Databases) {
@@ -398,7 +398,7 @@ function Invoke-PSExecuteCommands {
     # Get a list of the databases we intend to process from the tidal_main table.  
     # Include the server that contains the database that will be overwritten so we can extract the users list.
     Write-Verbose 'Getting the list of databases to process from the "tidal_main" table.'
-    $sql = "select restore_to + '.' + dbname database_name from $ConfigDB.dbo.tidal_main where group_id = $GroupID"
+    $sql = "select restore_to + '.' + dbname database_name from $ConfigDB.dbo.tidal_main where system_nm = '$SystemName' and group_id = $GroupID"
     $Databases = Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql
 
     $cmd_stmt = ""
@@ -738,7 +738,7 @@ function Backup-PSAllDiffs {
         )
 
     # Get the database information we'll be working with.
-    $sql = "select vt.dbname, vt.restore_to, vt.full_path_override, vt.diff_path_override, vt.full_path, vt.diff_path, vt.full_dbname_pattern, vt.diff_dbname_pattern from dbo.v_tidal vt where group_id = $GroupID"
+    $sql = "select vt.system_nm, vt.dbname, vt.restore_to, vt.full_path_override, vt.diff_path_override, vt.full_path, vt.diff_path, vt.full_dbname_pattern, vt.diff_dbname_pattern from dbo.v_tidal vt where system_nm = '$SystemName' and group_id = $GroupID"
     $dbs = Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql
 
     # Get network share locations of the backup files we'll be restoring.
@@ -815,7 +815,7 @@ function Restore-PSBackups {
         )
 
     # Get the list of databases we'll be working with.
-    $sql = "select vt.dbname, vt.restore_to, vt.full_path_override, vt.diff_path_override, vt.full_path, vt.diff_path, vt.full_dbname_pattern, vt.diff_dbname_pattern from dbo.v_tidal vt where group_id = $GroupID"
+    $sql = "select vt.system_nm, vt.dbname, vt.restore_to, vt.full_path_override, vt.diff_path_override, vt.full_path, vt.diff_path, vt.full_dbname_pattern, vt.diff_dbname_pattern from dbo.v_tidal vt where system_nm = '$SystemName' and group_id = $GroupID"
     $dbs = Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql
 
     # Get the network locations where the backups are stored.
