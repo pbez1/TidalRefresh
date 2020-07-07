@@ -34,7 +34,7 @@ function Write-PSTriggerFile {
         $copy_to_file = Join-Path -Path $($copy_to_data.filepath) -ChildPath $($copy_to_data.filename)
 
         Write-Verbose "Copying file: $trigger_file, to: $copy_to_file"
-        #Copy-Item -Path $trigger_file -Destination $copy_to_file -Force
+        Copy-Item -Path $trigger_file -Destination $copy_to_file -Force
         }
     else {
         # This is a simple file creation task.
@@ -110,21 +110,13 @@ function Get-PSLatestBackups {
         [string] $RestoreType 
         )
 
+    # Get the string to match and the extension from the dbname_pattern from the tidal_path table for the restore type.
     Write-Verbose "Getting the list of most recent backups for path: $FolderPath."
 
-    if ($RestoreType.ToLower() -eq 'full') {
-        $extension = '.bak'
-        $string_to_match = '_full_'
-        }
-    else {
-        if ($RestoreType.ToLower() -eq 'diff') {
-            $extension = '.diff'
-            $string_to_match = '_refresh'
-            }
-        else {
-            throw 'Error in Get-PSLatestBackups: -RestoreType parameter must be either "full" or "diff"'
-            }
-        }
+    $sql = "select top 1 dbname_pattern from tidal_path where path_name = '$($RestoreType.ToLower())'"
+    $db_name_ptrn = $((Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql).dbname_pattern)
+    $string_to_match = $($($db_name_ptrn -replace "`<dbname`>", '') -replace "`<date`>", '').Split('.')[0]
+    $extension = $db_name_ptrn.Split('.')[1]
 
     $all_files = (Get-ChildItem -Path $FolderPath -File `
         | Sort-Object -Property LastWriteTime -Descending) `
@@ -711,7 +703,7 @@ function Restore-PSSingleDB {
         $sql = Get-PSSQLStatement -CommandType 'Restore Full'
         }
     else {
-        if ($RestoreType.ToLower() -eq 'diff') {
+        if ('diff' -eq $RestoreType.ToLower()) {
             $sql = Get-PSSQLStatement -CommandType 'Restore Diff'
             }
         }
@@ -883,7 +875,7 @@ function Restore-PSBackups {
         }
     }
 
-function Start-PSRestore {
+function Start-PSRestoreAll {
     [cmdletbinding()]
 
     param(
@@ -904,17 +896,17 @@ function Start-PSRestore {
         )
 
     if ('full' -eq $($parms.RestoreType).trim().ToLower()) {
-        # Start-PSPreProcess @parms -ScriptOnly:$ScriptOnly 
+        Start-PSPreProcess @parms -ScriptOnly:$ScriptOnly 
         Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
-        # Start-PSPostProcess @parms -ScriptOnly:$ScriptOnly
+        Start-PSPostProcess @parms -ScriptOnly:$ScriptOnly
         }
     else {
         if ('diff' -eq $($parms.RestoreType).trim().ToLower()) {
-            # Start-PSPreProcess @parms -ScriptOnly:$ScriptOnly 
+            Start-PSPreProcess @parms -ScriptOnly:$ScriptOnly 
             # Backup-PSAllDiffs @parms -ScriptOnly:$ScriptOnly
             # Write-PSTriggerFile @parms -TriggerName 'Tidal Go Trigger'
             Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
-            # Start-PSPostProcess @parms -ScriptOnly:$ScriptOnly
+            Start-PSPostProcess @parms -ScriptOnly:$ScriptOnly
             }
         else {
             throw 'Invalid restore type.  The -RestoreType parameter must be either "full" or "diff"'
