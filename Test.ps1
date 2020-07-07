@@ -6,7 +6,7 @@ Clear-Host
 $parms = @{
     ConfigServer = 'spf-sv-delldb';
     ConfigDB = 'admin';
-    SystemName = 'QA-DW'
+    SystemName = 'PD-DW'
     RestoreType = 'diff'
     GroupID = 2
     }

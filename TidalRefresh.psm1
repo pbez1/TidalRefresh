@@ -10,6 +10,9 @@ function Write-PSTriggerFile {
         [Parameter(Mandatory = $true)]
         [string] $ConfigDB
         ,
+        [Parameter(Mandatory = $true)]
+        [string] $SystemName
+        ,
         [Parameter(Mandatory = $false)]
         [string] $RestoreType
         ,
@@ -58,6 +61,9 @@ function Disconnect-PSConnections {
         ,
         [Parameter(Mandatory = $true)]
         [string] $ConfigDB
+        ,
+        [Parameter(Mandatory = $true)]
+        [string] $SystemName
         ,
         [Parameter(Mandatory = $true)]
         [string] $RestoreType
@@ -282,6 +288,9 @@ function Invoke-PSPersistCommands {
         [string] $ConfigDB
         ,
         [Parameter(Mandatory = $true)]
+        [string] $SystemName
+        ,
+        [Parameter(Mandatory = $true)]
         [string] $RestoreType
         ,
         [Parameter(Mandatory = $false)]
@@ -380,6 +389,9 @@ function Invoke-PSExecuteCommands {
         [string] $ConfigDB
         ,
         [Parameter(Mandatory = $true)]
+        [string] $SystemName
+        ,
+        [Parameter(Mandatory = $true)]
         [string] $RestoreType
         ,
         [Parameter(Mandatory = $false)]
@@ -476,6 +488,9 @@ function Start-PSPreProcess {
         [string] $ConfigDB
         ,
         [Parameter(Mandatory = $true)]
+        [string] $SystemName
+        ,
+        [Parameter(Mandatory = $true)]
         [string] $RestoreType
         ,
         [Parameter(Mandatory = $false)]
@@ -533,6 +548,9 @@ function Start-PSPostProcess {
         ,
         [Parameter(Mandatory = $true)]
         [string] $ConfigDB
+        ,
+        [Parameter(Mandatory = $true)]
+        [string] $SystemName
         ,
         [Parameter(Mandatory = $true)]
         [string] $RestoreType
@@ -600,6 +618,9 @@ function Backup-PSSingleDB {
         [string] $Database
         ,
         [Parameter(Mandatory = $true)]
+        [string] $SystemName
+        ,
+        [Parameter(Mandatory = $true)]
         [string] $RestoreType
         ,
         [Parameter(Mandatory = $false)]
@@ -653,6 +674,9 @@ function Restore-PSSingleDB {
         ,
         [Parameter(Mandatory = $true)]
         [string] $Database
+        ,
+        [Parameter(Mandatory = $true)]
+        [string] $SystemName
         ,
         [Parameter(Mandatory = $true)]
         [string] $RestoreType
@@ -726,6 +750,9 @@ function Backup-PSAllDiffs {
         ,
         [Parameter(Mandatory = $true)]
         [string] $ConfigDB
+        ,
+        [Parameter(Mandatory = $true)]
+        [string] $SystemName
         ,
         [Parameter(Mandatory = $true)]
         [string] $RestoreType
@@ -803,6 +830,9 @@ function Restore-PSBackups {
         ,
         [Parameter(Mandatory = $true)]
         [string] $ConfigDB
+        ,
+        [Parameter(Mandatory = $true)]
+        [string] $SystemName
         ,
         [Parameter(Mandatory = $true)]
         [string] $RestoreType
@@ -884,6 +914,9 @@ function Start-PSRestoreAll {
         ,
         [Parameter(Mandatory = $true)]
         [string] $ConfigDB
+        ,
+        [Parameter(Mandatory = $true)]
+        [string] $SystemName
         ,
         [Parameter(Mandatory = $true)]
         [string] $RestoreType
