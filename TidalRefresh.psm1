@@ -676,9 +676,6 @@ function Restore-PSSingleDB {
         [string] $Database
         ,
         [Parameter(Mandatory = $true)]
-        [string] $SystemName
-        ,
-        [Parameter(Mandatory = $true)]
         [string] $RestoreType
         ,
         [Parameter(Mandatory = $false)]
