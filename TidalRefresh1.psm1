@@ -1,45 +1,5 @@
 # Import-Module SqlServer
 
-function Invoke-RunSSISDropUsers {
-    [cmdletbinding()]
-
-    param()
-
-    Write-Host "This function will result in all of the users in the restored Tidal database being dropped!"
-    Write-Host "This STEP will result in the DROP USER statements being scripted to \\gruyere\is\DBA\Aspen_Refresh\spf-sv-biqadb1\DropUsers_out<DB_NAME>.sql."
-    $yn = Read-Host "Do you really want to do this?"
-    if ('y' -eq $yn.Substring(0,1).ToLower()) {
-        Write-Host "Scripting the DROP USER commands to: gruyere\is\DBA\Aspen_Refresh\spf-sv-biqadb1\DropUsers_out<DB_NAME>.sql"
-
-        # Script users
-        #&"\\gruyere\is\DBA\Aspen_Refresh\spf-sv-biqadb1\ScriptDropUsers.bat"
-        }
-    else {
-        Write-Host "User does not wish to proceed.  Process aborted."
-        return
-        }
-
-    Write-Warning "This STEP will result in the DROP USER statements being EXECUTED!!!"
-    $yn = Read-Host "Do you really want to do this?"
-    if ('y' -eq $yn.Substring(0,1).ToLower()) {
-        $yn = Read-Host "Are you sure?  This cannot be undone?"
-        if ('y' -eq $yn.Substring(0,1).ToLower()) {
-            Write-Host "Dropping the users from the restored Tidal databases."
-
-            # Drop users
-            #&"\\gruyere\is\DBA\Aspen_Refresh\spf-sv-biqadb1\DropUsers.bat"
-            }
-        else {
-            Write-Host "User does not wish to proceed.  Process aborted."
-            return
-            }
-        }
-    else {
-        Write-Host "User does not wish to proceed.  Process aborted."
-        return
-        }
-    }
-   
 function Write-PSTriggerFile {
     [cmdletbinding()]
 
@@ -77,7 +37,7 @@ function Write-PSTriggerFile {
         $copy_to_file = Join-Path -Path $($copy_to_data.filepath) -ChildPath $($copy_to_data.filename)
 
         Write-Verbose "Copying file: $trigger_file, to: $copy_to_file"
-        # Copy-Item -Path $trigger_file -Destination $copy_to_file -Force
+        Copy-Item -Path $trigger_file -Destination $copy_to_file -Force
         }
     else {
         # This is a simple file creation task.
@@ -88,7 +48,7 @@ function Write-PSTriggerFile {
         Write-Verbose "Creating trigger file: $trigger_file"
 
         # New-Item $trigger_file -ItemType File -Value $($trigger_file.file_content)
-        # $trigger_data.file_content | Out-File $trigger_file
+        $trigger_data.file_content | Out-File $trigger_file
         }
     }
 
@@ -153,16 +113,13 @@ function Get-PSLatestBackups {
         [string] $FolderPath                    #= "\\firqa\sqlbackups5\sdc-prodqadb"
         ,
         [Parameter(Mandatory = $true)]
-        [string] $SystemName 
-        ,
-        [Parameter(Mandatory = $true)]
         [string] $RestoreType 
         )
 
     # Get the string to match and the extension from the dbname_pattern from the tidal_path table for the restore type.
     Write-Verbose "Getting the list of most recent backups for path: $FolderPath."
 
-    $sql = "select top 1 dbname_pattern from tidal_main tm inner join tidal_path tp on tm.$($RestoreType.ToLower())_path_id = tp.tidal_path_id where tp.path_name = '$($RestoreType.ToLower())' and tm.system_nm = '$SystemName'"
+    $sql = "select top 1 dbname_pattern from tidal_path where path_name = '$($RestoreType.ToLower())'"
     $db_name_ptrn = $((Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql).dbname_pattern)
     $string_to_match = $($($db_name_ptrn -replace "`<dbname`>", '') -replace "`<date`>", '').Split('.')[0]
     $extension = $db_name_ptrn.Split('.')[1]
@@ -230,60 +187,6 @@ function Get-PSSQLStatement {
 "@
         }
 
-    if ('Save ERS Permissions' -eq $CommandType.ToLower()) {
-        $sql = @"
-            declare @sql varchar(MAX);
-
-            -- Generate target DB Permissions
-            exec admin.dbo.RefreshBuildGeneratePermissionScript @DatabaseName = '$dbname' /* varchar(100) */, @SqlScript = @sql OUTPUT;
-            
-            -- Insert target DB permissions for use in Post Snap script
-            insert into admin.dbo.RefreshPermissionScripts (CreateDate, DatabaseName, GeneratedScript),
-                values (getdate(),  -- 'YYYY-MM-DD hh:mm:ss[.nnn]' CreateDate - datetime NOT NULL
-                '$dbname',          -- DatabaseName - varchar(100) NOT NULL
-                @sql                -- GeneratedScript - varchar(max) NOT NULL
-                )
-"@
-        }
-
-    if ('PD Diff Post Commands' -eq $CommandType.ToLower()) {
-        $sql = @"
-            USE master; 
-            ALTER DATABASE FACETS SET RECOVERY SIMPLE;
-            USE FACETS;
-            DBCC SHRINKFILE ([FACETSTZG_Log], 1) WITH NO_INFOMSGS;	
-            
-            -- Create View Definitions Database Role
-            USE FACETS;
-            CREATE ROLE view_def;
-            GRANT VIEW DEFINITION TO view_def;
-            GRANT SHOWPLAN TO view_def;
-            CREATE ROLE [taxID_info] AUTHORIZATION [dbo];
-            GRANT SELECT ON dbo.CMC_MCTI_TAX_INFO to taxID_info;
-            GRANT SELECT ON dbo.CMC_MCTN_TAX_NAME to taxID_info;
-            
-            -- Determining DB Permissions to Drop
-            USE admin;
-            DECLARE @sql varchar(MAX);
-            EXEC admin.dbo.RefreshDropSourceEnvironmentUsers @DatabaseName = 'FACETS', @SqlScript = @sql OUTPUT
-            EXEC(@sql);
-            
-            -- Reapplying Saved DB Permissions
-            SET @sql='';
-            SELECT TOP 1 @sql=rps.GeneratedScript FROM admin.dbo.RefreshPermissionScripts rps WHERE DatabaseName='FACETS' ORDER BY Id DESC;
-            EXEC(@sql);
-            
-            -- Fixing Orphaned SQL users
-            EXEC admin.dbo.RefreshFixOrphanedUsers @DatabaseName = 'FACETS';
-            
-            -- Create adhoc BI index
-            CREATE NONCLUSTERED INDEX [BI_IDX1_CLCL] ON [FACETS].[dbo].[CMC_CLCL_CLAIM]
-            (
-                [CLCL_MICRO_ID] ASC
-            ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-"@        
-        }
-
     # Get the commands to drop users from their databases.
     if ('Drop Users' -eq $CommandType.ToLower()) {
         $sql = @"
@@ -302,7 +205,7 @@ function Get-PSSQLStatement {
 "@
         }
 
-    if ('QA Restore Full' -eq $CommandType.ToLower()) {
+    if ('Restore Full' -eq $CommandType.ToLower()) {
         $sql = @"
             alter database $Database
             set offline with rollback immediate;
@@ -322,30 +225,8 @@ function Get-PSSQLStatement {
                 @EncryptionKey = '$EncryptionKey'
 "@
         }
-    
-    if ('PD Restore Full' -eq $CommandType.ToLower()) {
-        $sql = @"
-            alter database $Database
-            set offline with rollback immediate;
-            
-            alter database $Database
-            set online;
-            `
-            exec dbo.xp_restore_database 
-                @database = '$Database',
-                @logging = 1,
-                @filename = '$FullBackupName',
-                @filenumber = 1,`n
-"@                  + $move_section + @"
-                @throttle = 50,
-                @with = 'replace',
-                @with = 'STATS=10',
-                @with = 'norecovery',
-                @EncryptionKey = '$EncryptionKey'
-"@
-        }
-        
-    if ('QA Restore Diff' -eq $CommandType.ToLower()) {
+
+    if ('Restore Diff' -eq $CommandType.ToLower()) {
         $sql = @"
             exec dbo.xp_restore_database 
                 @database = '$Database',
@@ -596,56 +477,6 @@ function Invoke-PSExecuteCommands {
         }
     }
 
-function Invoke-PSRunTSqlAll {
-    [cmdletbinding()]
-
-    param(
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigServer
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigDB
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $SystemName
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $RestoreType
-        ,
-        [Parameter(Mandatory = $false)]
-        [int] $GroupID = 1
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $CommandType
-        ,
-        [Parameter(Mandatory = $false)]
-        [switch] $ScriptOnly
-        )
- 
-    # Get a list of the databases we intend to process from the tidal_main table.  
-    # Include the server that contains the database that will be overwritten so we can extract the users list.
-    Write-Verbose 'Getting the list of databases to process from the "tidal_main" table.'
-    $sql = "select restore_to + '.' + dbname database_name from $ConfigDB.dbo.tidal_main where system_nm = '$SystemName' and group_id = $GroupID"
-    $Databases = Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql
-
-    foreach ($db in $Databases) {
-        $src_server = $($db.database_name).split('.')[0]
-        $dbname = $($db.database_name).split('.')[1]
-
-        # Execute the SQL that retrieves the commands to store in tidal_users.
-        $sql = Get-PSSQLStatement -CommandType $CommandType
-        if ($ScriptOnly) {
-            Write-Output "Database: $dbname"
-            Write-Output "$sql"
-            }
-        else {
-            Write-Verbose "        Executing final batch for $dbname"
-            #$result_set = Invoke-Sqlcmd -ServerInstance $src_server -Database $dbname -Query $sql
-
-            }
-        }
-    }
-
 function Start-PSPreProcess {
     [cmdletbinding()]
 
@@ -845,9 +676,6 @@ function Restore-PSSingleDB {
         [string] $Database
         ,
         [Parameter(Mandatory = $true)]
-        [string] $SystemName
-        ,
-        [Parameter(Mandatory = $true)]
         [string] $RestoreType
         ,
         [Parameter(Mandatory = $false)]
@@ -891,23 +719,15 @@ function Restore-PSSingleDB {
         }
 
     # Create the executable SQL statement to restore the database.  The SQL statement will be different depending
-    # on the type of restore being done and the System it's being run on (for example: whether FULL or DIFF).
-    switch ($SystemName) {
-        'QA-DW' {
-            switch ($RestoreType) {
-                'full' {$sql_cmd = 'QA Restore Full'}
-                'diff' {$sql_cmd = 'QA Restore Diff'}
-                }
-            }
-        'PD-DW' {
-            switch ($RestoreType) {
-                'full' {$sql_cmd = 'PD Restore Full'}
-                'diff' {$sql_cmd = 'PD Restore Diff'}
-                }
+    # on the type of restore being done; whether FULL or DIFF.
+    if ($RestoreType -eq 'full') {
+        $sql = Get-PSSQLStatement -CommandType 'Restore Full'
+        }
+    else {
+        if ('diff' -eq $RestoreType.ToLower()) {
+            $sql = Get-PSSQLStatement -CommandType 'Restore Diff'
             }
         }
-
-    $sql = Get-PSSQLStatement -CommandType $sql_cmd
 
     # If the user only wants the SQL script, return it.  Otherwise, Execute the restore script.
     if ($ScriptOnly) {
@@ -991,14 +811,7 @@ function Backup-PSAllDiffs {
             } 
     
         # Restore the specified database
-        $sql = Backup-PSSingleDB `
-            -TargetServer $db.restore_to `
-            -FolderPath $backup_path `
-            -Database $($db.dbname) `
-            -SystemName $SystemName
-            -RestoreType $RestoreType.Trim().ToLower() `
-            -DBNamingPattern $db_naming_pattern `
-            -ScriptOnly:$ScriptOnly
+        $sql = Backup-PSSingleDB -TargetServer $db.restore_to -FolderPath $backup_path -Database $($db.dbname) -RestoreType $RestoreType.Trim().ToLower() -DBNamingPattern $db_naming_pattern -ScriptOnly:$ScriptOnly
 
         $out_val = $sql + "`n`n"
         Write-Host $out_val
@@ -1036,12 +849,10 @@ function Restore-PSBackups {
     $sql = "select tp.filepath from dbo.tidal_path tp where lower(tp.path_name) = '$($RestoreType.Trim().ToLower())'"
     $tidal_path = Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query $sql
 
---->>>    Tied restore type to path name.  BOY, WAS THAT A BIG MISTAKE!  Need to find a way to separate those symantically.
-
     # Get a list of the most recent full backups.  These are the *actual* path and file names of the databases to be restored.
     $latest_backups = @()
     foreach ($location in $tidal_path) {
-        $latest_backups += Get-PSLatestBackups -FolderPath $($location.filepath) -SystemName $SystemName -RestoreType $RestoreType.Trim().ToLower()
+        $latest_backups += Get-PSLatestBackups -FolderPath $($location.filepath) -RestoreType $RestoreType.Trim().ToLower()
         }
 
     # Loop through the database list, build the restore script fore each database and execute it.

@@ -10,7 +10,7 @@ function Write-PSTriggerFile {
         [Parameter(Mandatory = $true)]
         [string] $ConfigDB
         ,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [string] $RestoreType
         ,
         [Parameter(Mandatory = $false)]
@@ -112,9 +112,15 @@ function Get-LatestBackups {
 
     Write-Verbose "Getting the list of most recent backups for path: $FolderPath."
 
-    if ($RestoreType.ToLower() -eq 'full') {$extension = '.bak'}
+    if ($RestoreType.ToLower() -eq 'full') {
+        $extension = '.bak'
+        $string_to_match = '_full_'
+        }
     else {
-        if ($RestoreType.ToLower() -eq 'diff') {$extension = '.diff'}
+        if ($RestoreType.ToLower() -eq 'diff') {
+            $extension = '.diff'
+            $string_to_match = '_refresh'
+            }
         else {
             throw 'Error in Get-LatestBackups: -RestoreType parameter must be either "full" or "diff"'
             }
@@ -122,7 +128,7 @@ function Get-LatestBackups {
 
     $all_files = (Get-ChildItem -Path $FolderPath -File `
         | Sort-Object -Property LastWriteTime -Descending) `
-        | Where-Object {$_.Extension -eq $extension}
+        | Where-Object {$_.Extension -eq $extension -and $($_.Name).ToLower().IndexOf($string_to_match) -ge 0}
     
     $file_paths = @()
     foreach ($file in $all_files) {
@@ -145,7 +151,7 @@ function Get-SQLStatement {
 #-----------------------------------------------------------------------------------------------------
 
     # Get the commands to add the users back after the restore.
-    if ('Get Users Perms' -eq $CommandType.ToLower()) {
+    if ('Create Users' -eq $CommandType.ToLower()) {
         $sql = @"
             select
                 '$CommandType' cmd_type,
@@ -164,7 +170,7 @@ function Get-SQLStatement {
         }
 
     # Get the commands to add users back into their respective database roles.
-    if ('Get Users Roles' -eq $CommandType.ToLower()) {
+    if ('Create Users Roles' -eq $CommandType.ToLower()) {
         $sql = @"
             select
                 '$CommandType' cmd_type,
@@ -315,7 +321,7 @@ function Invoke-PSPersistCommands {
         # Execute the SQL that retrieves the commands to store in tidal_users.
         Write-Verbose "Saving commands for database: $dbname"
         $sql = Get-SQLStatement -CommandType $CommandType
-        $result_set = Invoke-Sqlcmd -ServerInstance $src_server -Database 'master' -Query $sql
+        $result_set = Invoke-Sqlcmd -ServerInstance $src_server -Database $dbname -Query $sql
         # Write-Host $sql
 
         $insert_stmt = ""
@@ -502,8 +508,8 @@ function Start-PreProcess {
 #---->  Put any FULL restore post process tasks between the two arrows.
 
         # Get the commands to add the users back after the restore.
-        Invoke-PSPersistCommands @parms -CommandType 'Get Users Perms' -ScriptOnly:$ScriptOnly
-        Invoke-PSPersistCommands @parms -CommandType 'Get Users Roles' -ScriptOnly:$ScriptOnly
+        Invoke-PSPersistCommands @parms -CommandType 'Create Users' -ScriptOnly:$ScriptOnly
+        Invoke-PSPersistCommands @parms -CommandType 'Create Users Roles' -ScriptOnly:$ScriptOnly
 
         # Kill existing connections to the databases.
         Disconnect-PSConnections @parms -ScriptOnly:$ScriptOnly
@@ -555,8 +561,8 @@ function Start-PostProcess {
 
         Write-Verbose "Post-Processing started."
 
-        # Invoke-PSPersistCommands @parms -CommandType 'Drop Users' -ScriptOnly:$ScriptOnly
-        Invoke-PSExecuteCommands @parms -CommandType 'Drop Users' -ScriptOnly:$ScriptOnly
+        Invoke-PSPersistCommands @parms -CommandType 'Drop Users' -ScriptOnly:$ScriptOnly
+        # Invoke-PSExecuteCommands @parms -CommandType 'Drop Users' -ScriptOnly:$ScriptOnly
         # Write-Verbose "Executing: exec dbo.AASP_PROV_NOT_FOUND_REFRESH"
         # # Invoke-Sqlcmd -ServerInstance $ConfigServer -Database $ConfigDB -Query 'exec dbo.AASP_PROV_NOT_FOUND_REFRESH'
         # Write-Verbose "Executing: update [dbo].[Token] SET [TokenValue] = 'BOGUS'"
@@ -885,8 +891,8 @@ function Invoke-DiffRestore {
     # Start-PreProcess @parms -ScriptOnly:$ScriptOnly 
     # Backup-PSAllDiffs @parms -ScriptOnly:$ScriptOnly
     # Write-PSTriggerFile @parms -TriggerName 'Tidal Go Trigger'
-    Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
-    # Start-PostProcess @parms -ScriptOnly:$ScriptOnly
+    # Restore-PSBackups @parms -ScriptOnly:$ScriptOnly
+    Start-PostProcess @parms -ScriptOnly:$ScriptOnly
     }
 
 function Invoke-FullRestore {
@@ -962,7 +968,9 @@ $parms = @{
     GroupID = 1
     }
 
-Start-Restore @parms -ScriptOnly #-Verbose
+# Start-Restore @parms -ScriptOnly 
 
 # Invoke-PSExecuteCommands @parms -CommandType 'full' -ScriptOnly
+
+Restore-PSBackups @parms -ScriptOnly
 
