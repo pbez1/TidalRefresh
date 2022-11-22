@@ -6,13 +6,16 @@ Clear-Host
 $parms = @{
     ConfigServer = 'spf-sv-delldb';
     ConfigDB = 'admin';
-    SystemName = 'PD-DW'
+    # SystemName = 'PD-DW'
+    SystemName = 'QA-DW'
     RestoreType = 'full'
     GroupID = 2
     }
 
 Clear-Host
 Restore-PSBackups @parms -ScriptOnly
+
+# Backup-PSAllDiffs @parms -ScriptOnly
 
 # Start-PSRestoreAll @parms -Verbose -ScriptOnly
 
