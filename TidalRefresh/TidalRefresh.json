@@ -1,0 +1,12 @@
+{
+   "MinVerSQLSERVER"          : "22.0.59",
+   "MaxVerSQLSERVER"          : "22.1.1",
+   "ConfigurationServer"      : "sdc-sqldbadb",
+   "ConfigurationDatabase"    : "admin",
+   "TableSchema"              : "trf",
+   
+   ".SqlCmdParms"              : [
+                                 "AbortOnError=True",
+                                 "TrustServerCertificate=True"
+                                 ]
+}
