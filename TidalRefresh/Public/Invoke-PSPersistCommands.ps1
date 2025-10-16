@@ -7,12 +7,6 @@ function Invoke-PSPersistCommands {
 
     param(
         [Parameter(Mandatory = $true)]
-        [string] $ConfigServer
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigDB
-        ,
-        [Parameter(Mandatory = $true)]
         [string] $SystemName
         ,
         [Parameter(Mandatory = $true)]
@@ -26,6 +20,12 @@ function Invoke-PSPersistCommands {
         ,
         [Parameter(Mandatory = $false)]
         [string] $Revision
+        ,
+        [Parameter(Mandatory = $false)]
+        [string] $ConfigServer = $ConfigurationServer 
+        ,
+        [Parameter(Mandatory = $false)]
+        [string] $ConfigDB = $ConfigurationDatabase
         ,
         [Parameter(Mandatory = $false)]
         [switch] $ScriptOnly

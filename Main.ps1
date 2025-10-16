@@ -4,9 +4,9 @@ Clear-Host
 
 $parms = @{
     # SystemName = 'PD-DW'
-    SystemName = 'QA-DW'
-    RestoreType = ''
-    GroupID = 3
+    SystemName = 'PD-DW'
+    RestoreType = 'diff'
+    GroupID = 2
     }
 
 Clear-Host
@@ -14,6 +14,6 @@ Restore-PSBackups @parms -ScriptOnly
 
 # Backup-PSAllDiffs @parms -ScriptOnly
 
-# Start-PSRestoreAll @parms -Verbose -ScriptOnly
+# Start-PSRestoreAll @parms -ScriptOnly -Verbose
 
 # Invoke-PSRunTSqlAll @parms -CommandType 'Save ERS Permissions' -ScriptOnly

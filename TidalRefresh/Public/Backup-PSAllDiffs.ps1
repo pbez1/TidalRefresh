@@ -6,12 +6,6 @@ function Backup-PSAllDiffs {
 
     param(
         [Parameter(Mandatory = $true)]
-        [string] $ConfigServer
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigDB
-        ,
-        [Parameter(Mandatory = $true)]
         [string] $SystemName
         ,
         [Parameter(Mandatory = $true)]
@@ -19,6 +13,12 @@ function Backup-PSAllDiffs {
         ,
         [Parameter(Mandatory = $false)]
         [string] $GroupID = "1"
+        ,
+        [Parameter(Mandatory = $false)]
+        [string] $ConfigServer = $ConfigurationServer
+        ,
+        [Parameter(Mandatory = $false)]
+        [string] $ConfigDB = $ConfigurationDatabase
         ,
         [Parameter(Mandatory = $false)]
         [switch] $ScriptOnly

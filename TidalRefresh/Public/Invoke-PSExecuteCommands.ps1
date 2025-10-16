@@ -7,12 +7,6 @@ function Invoke-PSExecuteCommands {
 
     param(
         [Parameter(Mandatory = $true)]
-        [string] $ConfigServer
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigDB
-        ,
-        [Parameter(Mandatory = $true)]
         [string] $SystemName
         ,
         [Parameter(Mandatory = $true)]
@@ -23,6 +17,12 @@ function Invoke-PSExecuteCommands {
         ,
         [Parameter(Mandatory = $true)]
         [string] $CommandType
+        ,
+        [Parameter(Mandatory = $false)]
+        [string] $ConfigServer = $ConfigurationServer 
+        ,
+        [Parameter(Mandatory = $false)]
+        [string] $ConfigDB = $ConfigurationDatabase
         ,
         [Parameter(Mandatory = $false)]
         [switch] $ScriptOnly

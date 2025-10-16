@@ -5,12 +5,7 @@ function Start-PSRestoreAll {
     [cmdletbinding()]
 
     param(
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigServer
-        ,
-        [Parameter(Mandatory = $true)]
-        [string] $ConfigDB
-        ,
+        [Parameter(Mandatory = $false)]
         [Parameter(Mandatory = $true)]
         [string] $SystemName
         ,
@@ -19,6 +14,11 @@ function Start-PSRestoreAll {
         ,
         [Parameter(Mandatory = $false)]
         [string] $GroupID = "1"
+        ,
+        [string] $ConfigServer = $ConfigurationServer
+        ,
+        [Parameter(Mandatory = $false)]
+        [string] $ConfigDB = $ConfigurationDatabase
         ,
         [Parameter(Mandatory = $false)]
         [switch] $ScriptOnly
@@ -53,7 +53,7 @@ function Start-PSRestoreAll {
                     Start-PSPostProcess @parms -ScriptOnly:$ScriptOnly
                     }
                 'diff' {
-                    Start-PSPreProcess @parms -ScriptOnly:$ScriptOnly 
+                    Start-PSPreProcess @parms -ConfigServer $ConfigServer -ConfigDb $ConfigDB -ScriptOnly:$ScriptOnly 
                     # Backup-PSAllDiffs @parms -ScriptOnly:$ScriptOnly
                     # Write-PSTriggerFile @parms -TriggerName 'Tidal Go Trigger'
                     Restore-PSBackups @parms -ScriptOnly:$ScriptOnly

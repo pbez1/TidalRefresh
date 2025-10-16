@@ -54,7 +54,8 @@ function Restore-PSBackups {
                     }
                 }
             else {
-                if ($file_name.Substring(0, $file_name.IndexOf('_refresh')) -eq $($db.dbname)) {
+                # if ($file_name.Substring(0, $file_name.IndexOf('_refresh')) -eq $($db.dbname)) {
+                if ($file_name.Substring(0, $file_name.IndexOf('_Diff_')) -eq $($db.dbname)) {
                     $full_backup_name = $backup
                     break
                     }
